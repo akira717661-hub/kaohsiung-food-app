@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高雄探店 App</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:#1a1207; --cream:#faf6ee; --paper:#f2ead8; --amber:#c9862a;
+    --amber-light:#e8b96a; --rust:#8b3a1e; --sage:#5a6e52; --muted:#7a6e5e;
+    --border:#ddd0b8; --tag-bg:#efe7d2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--cream);color:var(--ink);font-family:'Noto Sans TC',sans-serif;font-weight:300;line-height:1.7}
+
+  header{background:var(--ink);color:var(--cream);padding:48px 32px 40px;text-align:center;position:relative;overflow:hidden}
+  header::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 30px,rgba(201,134,42,.06) 30px,rgba(201,134,42,.06) 31px)}
+  header .subtitle{font-family:'DM Serif Display',serif;font-size:.85rem;letter-spacing:.3em;color:var(--amber-light);text-transform:uppercase;margin-bottom:14px;position:relative}
+  header h1{font-family:'Noto Serif TC',serif;font-size:clamp(1.8rem,5vw,3rem);font-weight:700;letter-spacing:.05em;position:relative}
+  header h1 span{color:var(--amber-light)}
+  .header-meta{margin-top:16px;font-size:.78rem;color:rgba(250,246,238,.5);letter-spacing:.1em;position:relative}
+
+  .controls-sticky{position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+  .controls{background:var(--paper);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;position:static}
+  .controls-filters{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding-top:10px;padding-bottom:10px;box-shadow:none}
+  .filter-btn{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--ink);font-family:'Noto Sans TC',sans-serif;font-size:.76rem;cursor:pointer;transition:all .18s}
+  .filter-btn:hover{background:var(--amber);color:#fff;border-color:var(--amber)}
+  .filter-btn.active{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+  .now-open-btn{border-color:#2e7d32;color:#2e7d32}
+  .now-open-btn.active,.now-open-btn:hover{background:#2e7d32!important;color:#fff!important;border-color:#2e7d32!important}
+  .action-btn{padding:6px 14px;border-radius:20px;border:none;background:var(--amber);color:#fff;font-family:'Noto Sans TC',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;transition:opacity .15s}
+  .action-btn:hover{opacity:.85}
+  .action-btn.dice{background:var(--rust)}
+  .action-btn.ghost{background:transparent;border:1px solid var(--amber);color:var(--amber)}
+  .search-box{padding:6px 14px;border:1px solid var(--border);border-radius:20px;background:var(--cream);font-family:'Noto Sans TC',sans-serif;font-size:.8rem;color:var(--ink);width:170px;outline:none}
+  .search-box:focus{border-color:var(--amber)}
+  select.mini-select{padding:5px 10px;border-radius:20px;border:1px solid var(--border);background:var(--cream);font-family:'Noto Sans TC',sans-serif;font-size:.76rem;color:var(--ink);outline:none}
+
+  main{max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+
+  .stats-bar{background:var(--paper);border:1px solid var(--border);border-radius:4px;padding:16px 24px;margin-bottom:32px;display:flex;gap:26px;flex-wrap:wrap;align-items:center}
+  .stat{text-align:center}
+  .stat-num{font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--amber);display:block;line-height:1}
+  .stat-label{font-size:.68rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  .stat-divider{width:1px;background:var(--border);align-self:stretch}
+
+  .district{margin-bottom:52px}
+  .district-header{display:flex;align-items:baseline;gap:14px;margin-bottom:22px;padding-bottom:12px;border-bottom:2px solid var(--ink);position:relative}
+  .district-header::after{content:'';position:absolute;bottom:-2px;left:0;width:60px;height:2px;background:var(--amber)}
+  .district-name{font-family:'Noto Serif TC',serif;font-size:1.35rem;font-weight:700;letter-spacing:.05em}
+  .district-count{font-size:.74rem;color:var(--muted)}
+
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:4px;padding:18px 20px;transition:transform .18s,box-shadow .18s;position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--border);transition:background .18s}
+  .card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,0,0,.1)}
+  .card:hover::before{background:var(--amber)}
+  .card.is-visited::before{background:var(--sage)}
+
+  .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .card-name{font-family:'Noto Serif TC',serif;font-size:.98rem;font-weight:600;line-height:1.4}
+  .g-rating{display:flex;align-items:center;gap:3px;font-size:.73rem;font-weight:500;color:var(--amber);white-space:nowrap;flex-shrink:0}
+  .g-rating .cnt{color:var(--muted);font-weight:300}
+  .open-badge,.closed-badge{display:inline-block;font-size:.6rem;font-weight:600;padding:1px 7px;border-radius:20px;letter-spacing:.04em;margin-left:5px;vertical-align:middle}
+  .open-badge{background:#e8f5e9;color:#2e7d32}
+  .closed-badge{background:#fce8e8;color:#b03a2e}
+
+  .tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+  .tag{font-size:.66rem;padding:2px 9px;background:var(--tag-bg);color:var(--muted);border-radius:20px;letter-spacing:.04em}
+  .tag.cuisine{background:#e8f0e5;color:var(--sage)}
+  .tag.price{background:#f5e8d8;color:var(--rust)}
+  .tag.res-yes{background:#fce8e8;color:#b03a2e}
+  .tag.res-no{background:#e8f5e9;color:#2e7d32}
+  .tag.res-rec{background:#fff3e0;color:#e65100}
+  .tag.custom-mark{background:#e3f2fd;color:#1565c0}
+
+  .card-info{font-size:.73rem;color:var(--muted);line-height:1.9}
+  .card-info .row{display:flex;align-items:flex-start;gap:6px}
+  .card-info .icon{flex-shrink:0;width:14px;text-align:center;margin-top:1px}
+
+  .highlight{margin-top:11px;padding:8px 12px;background:linear-gradient(135deg,#fffbf0,#fef5d8);border-left:3px solid var(--amber);border-radius:0 4px 4px 0;font-size:.72rem;color:#5a4520;line-height:1.6}
+  .highlight-label{font-weight:600;color:var(--amber);margin-right:4px}
+
+  .my-review-box{margin-top:11px;padding:8px 12px;background:#f0f4ef;border-left:3px solid var(--sage);border-radius:0 4px 4px 0;font-size:.72rem;color:#3d4a38;line-height:1.6}
+  .my-stars{color:#e0a020;font-size:.85rem;letter-spacing:2px}
+  .my-review-date{font-size:.64rem;color:var(--muted);margin-left:6px}
+
+  .card-footer{display:flex;gap:8px;margin-top:13px;align-items:center;flex-wrap:wrap}
+  .mini-btn{font-size:.7rem;padding:4px 12px;border-radius:16px;border:1px solid var(--border);background:transparent;color:var(--ink);cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .15s}
+  .mini-btn:hover{border-color:var(--amber);color:var(--amber)}
+  .mini-btn.danger:hover{border-color:#b03a2e;color:#b03a2e}
+  .card-link{font-size:.7rem;color:var(--amber);text-decoration:none;letter-spacing:.04em;margin-left:auto}
+  .card-link:hover{text-decoration:underline}
+
+  .visited{position:absolute;top:12px;right:12px;width:22px;height:22px;border:1.5px solid var(--border);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:transparent;transition:all .15s;background:none;z-index:2}
+  .visited:hover{border-color:var(--sage);color:var(--sage)}
+  .visited.done{background:var(--sage);border-color:var(--sage);color:#fff}
+
+  /* review panel */
+  .review-panel{margin-top:12px;padding:12px;background:var(--cream);border:1px dashed var(--border);border-radius:4px;display:none}
+  .review-panel.show{display:block}
+  .star-row{display:flex;gap:4px;margin-bottom:8px}
+  .star-btn{font-size:1.4rem;cursor:pointer;color:#d8cfc0;background:none;border:none;transition:color .1s;padding:0 2px}
+  .star-btn.lit{color:#e0a020}
+  .review-panel textarea{width:100%;min-height:70px;border:1px solid var(--border);border-radius:4px;padding:8px;font-family:'Noto Sans TC',sans-serif;font-size:.78rem;resize:vertical;background:#fff}
+  .review-panel .rp-actions{display:flex;gap:8px;margin-top:8px}
+
+  /* modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(26,18,7,.55);z-index:500;display:none;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto}
+  .modal-overlay.show{display:flex}
+  .modal{background:var(--cream);border-radius:8px;max-width:520px;width:100%;padding:26px 24px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .modal h2{font-family:'Noto Serif TC',serif;font-size:1.2rem;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--ink)}
+  .modal-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted)}
+  .form-group{margin-bottom:12px;position:relative}
+  .form-group label{display:block;font-size:.72rem;font-weight:500;color:var(--muted);margin-bottom:4px;letter-spacing:.05em}
+  .form-group input,.form-group select,.form-group textarea{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:4px;font-family:'Noto Sans TC',sans-serif;font-size:.82rem;background:#fff;outline:none}
+  .form-group input:focus,.form-group textarea:focus{border-color:var(--amber)}
+  .form-hint{font-size:.64rem;color:var(--muted);margin-top:3px}
+  .suggest-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:0 0 4px 4px;z-index:50;max-height:200px;overflow-y:auto;box-shadow:0 8px 20px rgba(0,0,0,.12);display:none}
+  .suggest-dropdown.show{display:block}
+  .suggest-item{padding:8px 12px;font-size:.76rem;cursor:pointer;border-bottom:1px solid #f0ead8;line-height:1.4}
+  .suggest-item:hover{background:var(--paper)}
+  .suggest-item .sub{font-size:.64rem;color:var(--muted)}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+
+  /* dice result */
+  .dice-result{margin-top:16px;padding:18px;background:#fff;border:2px solid var(--amber);border-radius:6px;display:none}
+  .dice-result.show{display:block}
+  .dice-result.rolling{border-color:var(--border)}
+  .dice-name{font-family:'Noto Serif TC',serif;font-size:1.15rem;font-weight:700;margin-bottom:6px}
+  .dice-meta{font-size:.76rem;color:var(--muted);margin-bottom:8px}
+  .dice-hl{font-size:.74rem;color:#5a4520;background:#fffbf0;padding:8px 10px;border-radius:4px;margin-bottom:10px}
+  .checkbox-row{display:flex;align-items:center;gap:8px;font-size:.78rem;margin-bottom:10px}
+  .checkbox-row input{width:auto}
+
+  .stats-list{font-size:.8rem;line-height:2}
+  .stats-list .bar-bg{display:inline-block;width:110px;height:8px;background:var(--tag-bg);border-radius:4px;vertical-align:middle;margin:0 8px;overflow:hidden}
+  .stats-list .bar-fill{display:block;height:100%;background:var(--sage);border-radius:4px}
+
+  .no-results{text-align:center;padding:60px 20px;color:var(--muted);font-size:.9rem;display:none}
+  footer{text-align:center;padding:36px;color:var(--muted);font-size:.7rem;border-top:1px solid var(--border);background:var(--paper);letter-spacing:.08em}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--cream);padding:10px 22px;border-radius:24px;font-size:.8rem;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+  .toast.show{opacity:1}
+
+  @media (max-width:600px){
+    header{padding:36px 20px 30px}
+    .controls{padding:12px 14px}
+    main{padding:24px 16px 60px}
+    .card-grid{grid-template-columns:1fr}
+    .search-box{width:130px}
+    .stats-bar{gap:18px;padding:14px 18px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="subtitle">Kaohsiung Food Explorer</p>
+  <h1>高雄 <span>探店</span> App</h1>
+  <p class="header-meta">評價 · 骰子 · 自主管理 — 你的專屬美食基地</p>
+</header>
+
+<div class="controls-sticky">
+<div class="controls">
+  <button class="action-btn dice" onclick="openModal('diceModal')">🎲 探店骰子</button>
+  <button class="action-btn" onclick="openAddModal()">＋ 新增餐廳</button>
+  <button class="action-btn ghost" onclick="openStats()">📊 統計</button>
+  <button class="action-btn ghost" onclick="openModal('backupModal')">💾 備份</button>
+</div>
+<div class="controls controls-filters">
+  <button class="filter-btn active" data-f="all" onclick="setFilter(this)">全部</button>
+  <button class="filter-btn" data-f="拉麵" onclick="setFilter(this)">🍜 拉麵</button>
+  <button class="filter-btn" data-f="日式" onclick="setFilter(this)">🇯🇵 日式</button>
+  <button class="filter-btn" data-f="燒" onclick="setFilter(this)">🔥 燒烤</button>
+  <button class="filter-btn" data-f="咖啡" onclick="setFilter(this)">☕ 咖啡</button>
+  <button class="filter-btn" data-f="甜點" onclick="setFilter(this)">🍮 甜點</button>
+  <button class="filter-btn" data-f="酒" onclick="setFilter(this)">🍸 酒吧</button>
+  <button class="filter-btn" data-f="訂位" onclick="setFilter(this)">📞 需訂位</button>
+  <button class="filter-btn" data-f="__hl" onclick="setFilter(this)">✦ 隱藏亮點</button>
+  <button class="filter-btn now-open-btn" id="now-open-btn" onclick="toggleNowOpen(this)">🟢 現在營業中</button>
+  <select class="mini-select" id="visit-filter" onchange="render()">
+    <option value="all">拜訪狀態：全部</option>
+    <option value="un">未去過</option>
+    <option value="done">已去過</option>
+    <option value="rated">已寫評價</option>
+  </select>
+  <input class="search-box" type="text" placeholder="🔍 搜尋…" oninput="onSearch(this.value)">
+</div>
+</div>
+
+<main>
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-num" id="st-total">0</span><span class="stat-label">總店數</span></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><span class="stat-num" id="st-visited">0</span><span class="stat-label">已拜訪</span></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><span class="stat-num" id="st-avg">–</span><span class="stat-label">我的平均評分</span></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><span class="stat-num" id="st-districts">0</span><span class="stat-label">行政區</span></div>
+  </div>
+  <div id="list"></div>
+  <div class="no-results" id="no-results">找不到符合的餐廳，請調整篩選條件。</div>
+</main>
+
+<footer>
+  <p>✦ 高雄探店 App ✦</p>
+  <p style="margin-top:4px;opacity:.55">v2.1 · 資料與營業時間修正版</p>
+  <p style="margin-top:6px;opacity:.6">資料儲存於此瀏覽器（localStorage）· 請定期使用 💾 備份匯出</p>
+</footer>
+
+<!-- ══ Add Modal ══ -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    <h2 id="addTitle">＋ 新增餐廳</h2>
+    <div class="form-group">
+      <label>店名 *（輸入關鍵字會出現地點聯想，例：烤鴨）</label>
+      <input id="f-name" autocomplete="off" placeholder="例：仁武烤鴨" oninput="suggestPlaces(this.value)">
+      <div class="suggest-dropdown" id="suggest-box"></div>
+      <div class="form-hint">聯想資料來自 OpenStreetMap，台灣小店覆蓋率有限；查不到可直接手動填寫。</div>
+    </div>
+    <div class="form-group">
+      <label>行政區 *</label>
+      <select id="f-district"></select>
+      <input id="f-district-custom" placeholder="輸入自訂區域名稱" style="display:none;margin-top:6px">
+    </div>
+    <div class="form-group"><label>料理種類</label><input id="f-cuisine" placeholder="例：日式拉麵"></div>
+    <div class="form-group">
+      <label>價位</label>
+      <select id="f-price">
+        <option value="$ 平價">$ 平價（~200）</option>
+        <option value="$$ 中價" selected>$$ 中價（200–600）</option>
+        <option value="$$$ 中高價">$$$ 中高價（600–1500）</option>
+        <option value="$$$$ 頂級">$$$$ 頂級（1500+）</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>訂位需求</label>
+      <select id="f-res">
+        <option value="no">不需訂位</option>
+        <option value="rec">建議訂位</option>
+        <option value="yes">需訂位</option>
+      </select>
+    </div>
+    <div class="form-group"><label>地址</label><input id="f-address" placeholder="選擇聯想結果會自動填入"></div>
+    <div class="form-group">
+      <label>營業時間（選填，格式需符合規範才能判斷「營業中」）</label>
+      <textarea id="f-hours" rows="3" placeholder="每日 | 11:00–14:00 / 17:00–21:00
+一三四五 | 13:00–23:30
+六日 | 11:00–23:30"></textarea>
+      <div class="form-hint">建議每行一組，格式為「營業日 | 時段」。營業日可寫「每日」、「一～五」、「二～日」或「一三五六」；同日多時段用 / 分隔。也可直接貼上舊格式，例如「二～日 17:00–01:00，週一公休」。</div>
+    </div>
+    <div class="form-group"><label>電話（選填）</label><input id="f-phone"></div>
+    <div class="form-group"><label>亮點備註（選填）</label><textarea id="f-hl" rows="2" placeholder="例：必點OO、深夜營業…"></textarea></div>
+    <div class="modal-actions">
+      <button class="action-btn ghost" onclick="openGoogleReview()">🔍 查 Google 網友評價（正負面）</button>
+      <button class="action-btn" onclick="saveNewRestaurant()">💾 儲存餐廳</button>
+    </div>
+    <div class="form-hint" style="margin-top:10px">※ 因 Google 評論需付費 API 金鑰，本程式無法直接內嵌顯示，點上方按鈕會開新分頁直達該店的 Google 評論區，正負評都能看到。</div>
+  </div>
+</div>
+
+<!-- ══ Dice Modal ══ -->
+<div class="modal-overlay" id="diceModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('diceModal')">✕</button>
+    <h2>🎲 探店骰子</h2>
+    <div class="form-group">
+      <label>行政區</label>
+      <select id="d-district"><option value="all">全部區域</option></select>
+    </div>
+    <div class="form-group">
+      <label>料理形式</label>
+      <select id="d-cuisine">
+        <option value="all">全部</option>
+        <option>拉麵</option><option>日式</option><option>台式</option><option>義式</option>
+        <option>美式</option><option>韓式</option><option>火鍋</option><option>燒</option>
+        <option>鐵板燒</option><option>咖啡</option><option>甜點</option><option>酒</option>
+        <option>居酒屋</option><option>早午餐</option><option>素</option><option>麵</option>
+      </select>
+      <input id="d-cuisine-custom" placeholder="或輸入自訂關鍵字（例：漢堡）" style="margin-top:6px">
+    </div>
+    <div class="checkbox-row"><input type="checkbox" id="d-unvisited" checked><label for="d-unvisited">只骰「未去過」的店</label></div>
+    <div class="checkbox-row"><input type="checkbox" id="d-open"><label for="d-open">只骰「現在營業中」的店</label></div>
+    <div class="modal-actions">
+      <button class="action-btn dice" style="font-size:.95rem;padding:10px 26px" onclick="rollDice()">🎲 開骰！</button>
+    </div>
+    <div class="dice-result" id="dice-result"></div>
+  </div>
+</div>
+
+<!-- ══ Stats Modal ══ -->
+<div class="modal-overlay" id="statsModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('statsModal')">✕</button>
+    <h2>📊 探店統計</h2>
+    <div id="stats-content" class="stats-list"></div>
+  </div>
+</div>
+
+<!-- ══ Backup Modal ══ -->
+<div class="modal-overlay" id="backupModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('backupModal')">✕</button>
+    <h2>💾 備份與還原</h2>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px;line-height:1.8">
+      所有評價、已拜訪紀錄、自行新增/刪除的餐廳都存在<b>此瀏覽器的 localStorage</b>。
+      清除瀏覽器資料或換裝置都會遺失，請養成定期匯出的習慣！第一次部署或換網址前，請先匯出 JSON 備份。
+    </p>
+    <div class="modal-actions">
+      <button class="action-btn" onclick="exportData()">⬇️ 匯出備份檔（JSON）</button>
+      <label class="action-btn ghost" style="cursor:pointer">⬆️ 匯入備份檔<input type="file" accept=".json" style="display:none" onchange="importData(this)"></label>
+    </div>
+    <hr style="margin:18px 0;border:none;border-top:1px solid var(--border)">
+    <div class="modal-actions">
+      <button class="mini-btn danger" onclick="restoreDeleted()">♻️ 還原所有被我刪除的內建餐廳</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════ 資料 ═══════════
+const SEED = [{"id":"s0","name":"喵姨蛋餅","district":"鹽埕區","cuisine":"台式早餐","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"花新路 7 號，鹽埕區","hours":"早上供應，建議早去","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%96%B5%E5%A7%A8%E8%9B%8B%E9%A4%85%20%E8%8A%B1%E6%96%B0%E8%B7%AF%207%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 早午餐 平價 不需訂位"},{"id":"s1","name":"女子餃子","district":"鹽埕區","cuisine":"日式煎餃","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"七賢三路 113-2 號，鹽埕區","hours":"一～六 11:00–18:30，週二三公休","phone":"+886 975 629 456","grating":"4.4","gcount":"1,438","hlLabel":"✦ 隱藏亮點","hlText":"除了主打煎餃，鍋燒麵也是必點推薦！","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%A5%B3%E5%AD%90%E9%A4%83%E5%AD%90%20%E4%B8%83%E8%B3%A2%E4%B8%89%E8%B7%AF%20113-2%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 餃子 平價 不需訂位"},{"id":"s2","name":"鴨肉本","district":"鹽埕區","cuisine":"台式小吃","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"復野路 107 號，鹽埕區","hours":"每日 10:00–20:30","phone":"+886 7 531 4630","grating":"4.3","gcount":"5,010","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%B4%A8%E8%82%89%E6%9C%AC%20%E5%BE%A9%E9%87%8E%E8%B7%AF%20107%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 鴨肉 平價 不需訂位"},{"id":"s3","name":"阿玉水煎包","district":"鹽埕區","cuisine":"台式點心","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"碧仲街 71 號，鹽埕區","hours":"一～六 15:00–18:00，週日公休","phone":"+886 919 188 526","grating":"4.3","gcount":"753","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%98%BF%E7%8E%89%E6%B0%B4%E7%85%8E%E5%8C%85%20%E7%A2%A7%E4%BB%B2%E8%A1%97%2071%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 水煎包 平價 不需訂位"},{"id":"s4","name":"下一鍋水煎包","district":"鹽埕區","cuisine":"台式點心","price":"$ 平價","resClass":"rec","resText":"建議提前電話預約","address":"大利街 24 號，鹽埕區","hours":"二～日 14:00–18:30，週一公休","phone":"+886 915 010 853","grating":"4.1","gcount":"1,469","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E4%B8%8B%E4%B8%80%E9%8D%8B%E6%B0%B4%E7%85%8E%E5%8C%85%20%E5%A4%A7%E5%88%A9%E8%A1%97%2024%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 水煎包 平價 不需訂位"},{"id":"s5","name":"阿貴私塾","district":"鹽埕區","cuisine":"咖啡／早午餐","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"居如街 85 號，鹽埕區","hours":"每日 08:00–17:00","phone":"+886 7 551 3947","grating":"3.9","gcount":"526","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%98%BF%E8%B2%B4%E7%A7%81%E5%A1%BE%20%E5%B1%85%E5%A6%82%E8%A1%97%2085%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"咖啡 早午餐 中價 不需訂位"},{"id":"s6","name":"五零年代咖啡","district":"鹽埕區","cuisine":"精品咖啡","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"大智路 99 號，鹽埕區","hours":"四～二 12:30–19:00，週三公休","phone":"+886 955 636 910","grating":"4.9","gcount":"699","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E4%BA%94%E9%9B%B6%E5%B9%B4%E4%BB%A3%E5%92%96%E5%95%A1%20%E5%A4%A7%E6%99%BA%E8%B7%AF%2099%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"咖啡 中價 不需訂位"},{"id":"s7","name":"吳家金桔豆花","district":"鹽埕區","cuisine":"台式甜品","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"復野路 70 號，鹽埕區","hours":"二～日 11:00–18:00，週一公休","phone":"+886 916 247 956","grating":"4.4","gcount":"1,741","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%90%B3%E5%AE%B6%E9%87%91%E6%A1%94%E8%B1%86%E8%8A%B1%20%E5%BE%A9%E9%87%8E%E8%B7%AF%2070%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"甜點 豆花 平價 不需訂位"},{"id":"s8","name":"就是愛豆花","district":"鹽埕區","cuisine":"台式甜品","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"新樂街 137 號，鹽埕區","hours":"每日 12:00–21:30 (各日略有不同)","phone":"+886 970 380 815","grating":"4.5","gcount":"491","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%B0%B1%E6%98%AF%E6%84%9B%E8%B1%86%E8%8A%B1%20%E6%96%B0%E6%A8%82%E8%A1%97%20137%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"甜點 豆花 平價 不需訂位"},{"id":"s9","name":"香茗茶行","district":"鹽埕區","cuisine":"茶飲／冰淇淋","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"五福四路 264 號，鹽埕區","hours":"一二四五六 09:00–21:00，週三公休","phone":"+886 7 533 8242","grating":"3.8","gcount":"1,424","hlLabel":"✦ 隱藏亮點","hlText":"指定推薦：花橙白毫烏龍茶。","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%A6%99%E8%8C%97%E8%8C%B6%E8%A1%8C%20%E4%BA%94%E7%A6%8F%E5%9B%9B%E8%B7%AF%20264%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"咖啡 茶飲 平價 不需訂位"},{"id":"s10","name":"LA.J cafe Studio 贅。珈琲","district":"鹽埕區","cuisine":"精品咖啡","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"建國四路 5-1 號，鹽埕區","hours":"四～日 12:30–20:00 (六至 22:00)，週一二三公休","phone":"+886 983 412 091","grating":"4.9","gcount":"96","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=LA.J%20cafe%20Studio%20%E8%B4%85%E3%80%82%E7%8F%88%E7%90%B2%20%E5%BB%BA%E5%9C%8B%E5%9B%9B%E8%B7%AF%205-1%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"咖啡 中價 不需訂位"},{"id":"s11","name":"神諭咖啡 Oracle Coffee","district":"鹽埕區","cuisine":"精品咖啡","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"碧心街 105 號，鹽埕區","hours":"每日 10:00–18:00","phone":"+886 7 521 7117","grating":"4.4","gcount":"770","hlLabel":"✦ 隱藏亮點","hlText":"巴斯克乳酪蛋糕是招牌必點！（駁二店限定）","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%A5%9E%E8%AB%AD%E5%92%96%E5%95%A1%20Oracle%20Coffee%20%E7%A2%A7%E5%BF%83%E8%A1%97%20105%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"咖啡 中價 不需訂位"},{"id":"s12","name":"獺蛤拉麵 8","district":"鹽埕區","cuisine":"日式拉麵","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"大仁路 164 號，鹽埕區","hours":"每日 17:30–22:30","phone":"+886 905 801 894","grating":"4.5","gcount":"499","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%8D%BA%E8%9B%A4%E6%8B%89%E9%BA%B5%208%20%E5%A4%A7%E4%BB%81%E8%B7%AF%20164%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 平價 不需訂位"},{"id":"s13","name":"厥楓流","district":"鹽埕區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"五福四路 260 巷 18 號，鹽埕區","hours":"二～日 17:00–01:00，週一公休","phone":"+886 986 906 301","grating":"4.5","gcount":"80","hlLabel":"✦ 隱藏亮點","hlText":"深夜拉麵！僅兩種口味：家系豚骨醬油、清湯蝦醬，後者最受推薦。CP值評價兩極，待考察。","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%8E%A5%E6%A5%93%E6%B5%81%20%E4%BA%94%E7%A6%8F%E5%9B%9B%E8%B7%AF%20260%20%E5%B7%B7%2018%20%E8%99%9F%EF%BC%8C%E9%B9%BD%E5%9F%95%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s14","name":"猿羽川 鰻魚專賣","district":"左營區","cuisine":"日式鰻魚","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"富國路 41 號，左營區","hours":"一二四五六日 11:30–14:00 / 17:30–21:00，週三公休","phone":"+886 932 132 639","grating":"4.8","gcount":"52","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%8C%BF%E7%BE%BD%E5%B7%9D%20%E9%B0%BB%E9%AD%9A%E5%B0%88%E8%B3%A3%20%E5%AF%8C%E5%9C%8B%E8%B7%AF%2041%20%E8%99%9F%EF%BC%8C%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 鰻魚 中價 訂位"},{"id":"s15","name":"本 Hon 鐵板燒","district":"左營區","cuisine":"日式鐵板燒","price":"$$$ 高價","resClass":"yes","resText":"需訂位","address":"新生街 28 號，左營區","hours":"每日 12:00–14:00 / 18:00–22:00","phone":"+886 938 608 360","grating":"4.5","gcount":"320","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%9C%AC%20Hon%20%E9%90%B5%E6%9D%BF%E7%87%92%20%E6%96%B0%E7%94%9F%E8%A1%97%2028%20%E8%99%9F%EF%BC%8C%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 鐵板燒 高價 訂位"},{"id":"s16","name":"仙桃素","district":"左營區","cuisine":"精緻蔬食","price":"$$$ 高價","resClass":"yes","resText":"需訂位","address":"富國路 220 號，左營區","hours":"三～日 11:00–14:30 / 18:00–21:30，週一二公休","phone":"+886 7 522 7700","grating":"4.8","gcount":"566","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E4%BB%99%E6%A1%83%E7%B4%A0%20%E5%AF%8C%E5%9C%8B%E8%B7%AF%20220%20%E8%99%9F%EF%BC%8C%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"素食 蔬食 高價 訂位"},{"id":"s17","name":"梨花A5和牛放題","district":"左營區","cuisine":"A5和牛鍋物","price":"$$$ 中高價","resClass":"rec","resText":"建議訂位","address":"安吉街 468 號，左營區","hours":"每日 11:00–15:00 / 17:00–23:00（週末不休息）","phone":"+886 7 550 6811","grating":"4.4","gcount":"2,762","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%A2%A8%E8%8A%B1A5%E5%92%8C%E7%89%9B%E6%94%BE%E9%A1%8C%20%E5%AE%89%E5%90%89%E8%A1%97%20468%20%E8%99%9F%EF%BC%8C%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 火鍋 和牛 中高價 訂位"},{"id":"s18","name":"贏麵製麵所","district":"左營區","cuisine":"日式拉麵","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"富國路 3 號，左營區","hours":"每日 11:30–21:30","phone":"+886 7 556 6508","grating":"4.6","gcount":"163","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%B4%8F%E9%BA%B5%E8%A3%BD%E9%BA%B5%E6%89%80%20%E5%AF%8C%E5%9C%8B%E8%B7%AF%203%20%E8%99%9F%EF%BC%8C%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 麵食 平價 不需訂位"},{"id":"s19","name":"羊燒味－溫體羊肉專賣店","district":"左營區","cuisine":"燒烤／羊肉","price":"$$ 中價","resClass":"yes","resText":"強烈建議訂位（僅6桌）","address":"明誠二路 526 號，左營區","hours":"每日 17:30–01:00","phone":"+886 7 550 8332","grating":"4.3","gcount":"512","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%BE%8A%E7%87%92%E5%91%B3%EF%BC%8D%E6%BA%AB%E9%AB%94%E7%BE%8A%E8%82%89%E5%B0%88%E8%B3%A3%E5%BA%97%20%E6%98%8E%E8%AA%A0%E4%BA%8C%E8%B7%AF%20526%20%E8%99%9F%EF%BC%8C%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"燒肉 羊肉 中價 訂位"},{"id":"s20","name":"初墨","district":"左營區","cuisine":"義式料理","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"新莊仔路 546 巷 24 號，左營區","hours":"每日 12:00–14:00 / 17:00–20:00","phone":"+886 7 550 9950","grating":"4.8","gcount":"187","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%88%9D%E5%A2%A8%20%E6%96%B0%E8%8E%8A%E4%BB%94%E8%B7%AF%20546%20%E5%B7%B7%2024%20%E8%99%9F%EF%BC%8C%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"義式 義大利麵 中價 不需訂位"},{"id":"s21","name":"暉雄辦事處","district":"左營區","cuisine":"台式創意","price":"$$ 中價","resClass":"yes","resText":"需訂位","address":"文自路 1002 號，左營區（近蓮池潭）","hours":"每日 12:00–14:00 / 17:00–20:00","phone":"","grating":"4.6","gcount":"100","hlLabel":"✦ 隱藏亮點","hlText":"必點：金沙料理＆蒜香豬腳！","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%9A%89%E9%9B%84%E8%BE%A6%E4%BA%8B%E8%99%95%20%E6%96%87%E8%87%AA%E8%B7%AF%201002%20%E8%99%9F%EF%BC%8C%E5%B7%A6%E7%87%9F%E5%8D%80%EF%BC%88%E8%BF%91%E8%93%AE%E6%B1%A0%E6%BD%AD%EF%BC%89%20%E9%AB%98%E9%9B%84","tags":"台式 創意 中價 訂位"},{"id":"s22","name":"小憩手作","district":"左營區","cuisine":"手作甜點咖啡","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%B0%8F%E6%86%A9%E6%89%8B%E4%BD%9C%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"咖啡 甜點 中價 不需訂位"},{"id":"s23","name":"奧比沐 ALBE Mu","district":"左營區","cuisine":"日式拌麵／定食","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"✦ 隱藏亮點","hlText":"推薦點雞蔥油拌麵與麻婆黑豆腐飯，口味出色！","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%A5%A7%E6%AF%94%E6%B2%90%20ALBE%20Mu%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 麵食 中價 不需訂位"},{"id":"s24","name":"火山湯海","district":"左營區","cuisine":"日式拉麵","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%81%AB%E5%B1%B1%E6%B9%AF%E6%B5%B7%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 平價 不需訂位"},{"id":"s25","name":"滯拉麵","district":"左營區","cuisine":"日式拉麵","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%BB%AF%E6%8B%89%E9%BA%B5%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 平價 不需訂位"},{"id":"s26","name":"希ラーメン拉麵","district":"左營區","cuisine":"日式拉麵","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%B8%8C%E3%83%A9%E3%83%BC%E3%83%A1%E3%83%B3%E6%8B%89%E9%BA%B5%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 平價 不需訂位"},{"id":"s27","name":"金田家","district":"左營區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%87%91%E7%94%B0%E5%AE%B6%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 平價 不需訂位"},{"id":"s28","name":"麵屋武藏 武骨","district":"左營區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%BA%B5%E5%B1%8B%E6%AD%A6%E8%97%8F%20%E6%AD%A6%E9%AA%A8%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s29","name":"Menya kama 麵屋竈","district":"左營區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=Menya%20kama%20%E9%BA%B5%E5%B1%8B%E7%AB%88%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s30","name":"路易奇電力公司","district":"左營區","cuisine":"義式/美式","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%B7%AF%E6%98%93%E5%A5%87%E9%9B%BB%E5%8A%9B%E5%85%AC%E5%8F%B8%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"義式 披薩 漢堡 中價 不需訂位"},{"id":"s31","name":"DG Burger","district":"左營區","cuisine":"美式漢堡","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=DG%20Burger%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"美式 漢堡 中價 不需訂位"},{"id":"s32","name":"和村日本料理","district":"左營區","cuisine":"日本料理","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%92%8C%E6%9D%91%E6%97%A5%E6%9C%AC%E6%96%99%E7%90%86%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 日本料理 中價 訂位"},{"id":"s33","name":"諾比饗美式小館","district":"左營區","cuisine":"美式早午餐","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"左營區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%AB%BE%E6%AF%94%E9%A5%97%E7%BE%8E%E5%BC%8F%E5%B0%8F%E9%A4%A8%20%E5%B7%A6%E7%87%9F%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 早午餐 中價 不需訂位"},{"id":"s34","name":"尋找小餐館","district":"鼓山區","cuisine":"台式創意料理","price":"$$ 中價","resClass":"yes","resText":"需訂位","address":"和川街 53 號，鼓山區","hours":"一二五六日 17:30–01:00，週三四公休","phone":"+886 936 423 103","grating":"4.9","gcount":"240","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%B0%8B%E6%89%BE%E5%B0%8F%E9%A4%90%E9%A4%A8%20%E5%92%8C%E5%B7%9D%E8%A1%97%2053%20%E8%99%9F%EF%BC%8C%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 創意 中價 訂位"},{"id":"s35","name":"韓福香","district":"鼓山區","cuisine":"韓式料理","price":"$$ 中價","resClass":"rec","resText":"建議訂位","address":"文中路 44 號，鼓山區","hours":"二～日 11:00–14:00 / 17:00–21:00，週一公休","phone":"+886 7 554 5365","grating":"4.1","gcount":"517","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%9F%93%E7%A6%8F%E9%A6%99%20%E6%96%87%E4%B8%AD%E8%B7%AF%2044%20%E8%99%9F%EF%BC%8C%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"韓式 韓國料理 中價 不需訂位"},{"id":"s36","name":"慶壽喜燒涮涮鍋","district":"鼓山區","cuisine":"壽喜燒／鍋物","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"明華路 124 號，鼓山區","hours":"每日 11:00–14:00 / 17:00–21:30","phone":"+886 956 688 649","grating":"4.3","gcount":"543","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%85%B6%E5%A3%BD%E5%96%9C%E7%87%92%E6%B6%AE%E6%B6%AE%E9%8D%8B%20%E6%98%8E%E8%8F%AF%E8%B7%AF%20124%20%E8%99%9F%EF%BC%8C%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 壽喜燒 火鍋 中高價 訂位"},{"id":"s37","name":"TORITEN とり天","district":"鼓山區","cuisine":"日式炭燒串燒","price":"$$$ 中高價","resClass":"yes","resText":"需訂位（限12席）","address":"美術東四路 2 號，鼓山區","hours":"二～日 18:00–23:00，週一公休","phone":"+886 7 552 8353","grating":"4.6","gcount":"93","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=TORITEN%20%E3%81%A8%E3%82%8A%E5%A4%A9%20%E7%BE%8E%E8%A1%93%E6%9D%B1%E5%9B%9B%E8%B7%AF%202%20%E8%99%9F%EF%BC%8C%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 串燒 居酒屋 中高價 訂位"},{"id":"s38","name":"這間串燒 農16店","district":"鼓山區","cuisine":"串燒吃到飽","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"華榮路 52 號，鼓山區","hours":"每日 17:00–01:00","phone":"+886 7 552 8658","grating":"4.4","gcount":"247","hlLabel":"✦ 隱藏亮點","hlText":"可以邊吃到飽邊唱歌！想找聚會場地首選這裡 🎤","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%80%99%E9%96%93%E4%B8%B2%E7%87%92%20%E8%BE%B216%E5%BA%97%20%E8%8F%AF%E6%A6%AE%E8%B7%AF%2052%20%E8%99%9F%EF%BC%8C%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 串燒 燒烤 中價 不需訂位"},{"id":"s39","name":"祭一拉麵","district":"鼓山區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"明華路 120 號，鼓山區","hours":"一～五 17:00–21:00，六日加開午餐 11:00–14:00","phone":"+886 7 555 0086","grating":"4.5","gcount":"507","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%A5%AD%E4%B8%80%E6%8B%89%E9%BA%B5%20%E6%98%8E%E8%8F%AF%E8%B7%AF%20120%20%E8%99%9F%EF%BC%8C%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s40","name":"麵屋趣","district":"鼓山區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"明華路 231 號，鼓山區","hours":"一二三五六日 11:30–15:00 / 17:30–21:00，週四公休","phone":"+886 7 552 5572","grating":"4.7","gcount":"652","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%BA%B5%E5%B1%8B%E8%B6%A3%20%E6%98%8E%E8%8F%AF%E8%B7%AF%20231%20%E8%99%9F%EF%BC%8C%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s41","name":"清流房日式拉麵","district":"鼓山區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"美術南二路 125 號，鼓山區","hours":"每日 11:00–14:00 / 17:00–20:20","phone":"+886 7 554 0207","grating":"4.5","gcount":"261","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%B8%85%E6%B5%81%E6%88%BF%E6%97%A5%E5%BC%8F%E6%8B%89%E9%BA%B5%20%E7%BE%8E%E8%A1%93%E5%8D%97%E4%BA%8C%E8%B7%AF%20125%20%E8%99%9F%EF%BC%8C%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s42","name":"麵屋祥","district":"鼓山區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"鼓山區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%BA%B5%E5%B1%8B%E7%A5%A5%20%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s43","name":"品麵屋","district":"鼓山區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"鼓山區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%93%81%E9%BA%B5%E5%B1%8B%20%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s44","name":"一幻拉麵（新濱町店）","district":"鼓山區","cuisine":"海老拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"濱海一路 109-1 號，鼓山區","hours":"每日 12:00–20:30","phone":"","grating":"4.6","gcount":"389","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E4%B8%80%E5%B9%BB%E6%8B%89%E9%BA%B5%EF%BC%88%E6%96%B0%E6%BF%B1%E7%94%BA%E5%BA%97%EF%BC%89%20%E6%BF%B1%E6%B5%B7%E4%B8%80%E8%B7%AF%20109-1%20%E8%99%9F%EF%BC%8C%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中高價 不需訂位"},{"id":"s45","name":"樓梯腳","district":"鼓山區","cuisine":"台式料理","price":"$$ 中價","resClass":"yes","resText":"需訂位","address":"鼓山區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%A8%93%E6%A2%AF%E8%85%B3%20%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 創意 中價 訂位"},{"id":"s46","name":"HONBO、HONBO、HONBO Burger Shop","district":"鼓山區","cuisine":"美式手工漢堡","price":"$$ 中價（均消 $300）","resClass":"no","resText":"不需訂位・只收現金","address":"明華路 117 號，鼓山區（近凹仔底公園）","hours":"營業時間待確認（網路資料不一致，出發前請查官方 IG）","phone":"+886 7 550 2603","grating":"","gcount":"","hlLabel":"✦ 隱藏亮點","hlText":"鐵板現煎牛肉漢堡肉汁超豐富！自製醬料是招牌靈魂，飲料記得點「激浪」搭配更對味。店內有大螢幕，看球賽聚會首選。只收現金！","mapUrl":"https://www.google.com/maps/search/?api=1&query=HONBO%E3%80%81HONBO%E3%80%81HONBO%20Burger%20Shop%20%E6%98%8E%E8%8F%AF%E8%B7%AF%20117%20%E8%99%9F%EF%BC%8C%E9%BC%93%E5%B1%B1%E5%8D%80%EF%BC%88%E8%BF%91%E5%87%B9%E4%BB%94%E5%BA%95%E5%85%AC%E5%9C%92%EF%BC%89%20%E9%AB%98%E9%9B%84","tags":"美式 漢堡 中價 不需訂位"},{"id":"s47","name":"C'est Bon Bar & Restaurant","district":"鼓山區","cuisine":"義式餐酒館","price":"$$ 中價（均消 $600）","resClass":"yes","resText":"全預約制，必訂位","address":"美術東六街 149 號，鼓山區","hours":"二～日 18:00–02:00，週一公休","phone":"+886 7 522 5503","grating":"4.8","gcount":"645","hlLabel":"✦ 隱藏亮點","hlText":"干邑 BBQ 伊比利豬肋條有桌邊火焰秀！調酒蘑菇 Bomb、愛神維納斯都是招牌。北歐慵懶風，氣氛超好，聚餐約會首選。","mapUrl":"https://www.google.com/maps/search/?api=1&query=C%27est%20Bon%20Bar%20%26%20Restaurant%20%E7%BE%8E%E8%A1%93%E6%9D%B1%E5%85%AD%E8%A1%97%20149%20%E8%99%9F%EF%BC%8C%E9%BC%93%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"義式 餐酒館 調酒 中價 訂位"},{"id":"s48","name":"囲 KAKOI 洋風居酒屋","district":"前金區","cuisine":"洋風居酒屋","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"仁義街 289 號，前金區","hours":"一三四五六日 18:00–01:00，週二公休","phone":"+886 7 241 1225","grating":"4.4","gcount":"434","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%9B%B2%20KAKOI%20%E6%B4%8B%E9%A2%A8%E5%B1%85%E9%85%92%E5%B1%8B%20%E4%BB%81%E7%BE%A9%E8%A1%97%20289%20%E8%99%9F%EF%BC%8C%E5%89%8D%E9%87%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"居酒屋 日式 西式 中價 不需訂位"},{"id":"s49","name":"BAR From 2.0","district":"前金區","cuisine":"調酒酒吧","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"前金區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=BAR%20From%202.0%20%E5%89%8D%E9%87%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"酒吧 BAR 中價 不需訂位"},{"id":"s50","name":"麵屋重生","district":"前金區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"中華四路 315 號，前金區","hours":"每日 11:30–14:00 / 17:00–21:00","phone":"+886 979 666 351","grating":"4.5","gcount":"319","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%BA%B5%E5%B1%8B%E9%87%8D%E7%94%9F%20%E4%B8%AD%E8%8F%AF%E5%9B%9B%E8%B7%AF%20315%20%E8%99%9F%EF%BC%8C%E5%89%8D%E9%87%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s51","name":"豚十三福岡拉麵","district":"前金區","cuisine":"豚骨拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"大同二路 2 號，前金區","hours":"每日 11:00–20:45","phone":"+886 7 216 6665","grating":"3.6","gcount":"649","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%B1%9A%E5%8D%81%E4%B8%89%E7%A6%8F%E5%B2%A1%E6%8B%89%E9%BA%B5%20%E5%A4%A7%E5%90%8C%E4%BA%8C%E8%B7%AF%202%20%E8%99%9F%EF%BC%8C%E5%89%8D%E9%87%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 豚骨 平價 不需訂位"},{"id":"s52","name":"らーめん壱鶏白湯","district":"前金區","cuisine":"雞白湯拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"前金區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E3%82%89%E3%83%BC%E3%82%81%E3%82%93%E5%A3%B1%E9%B6%8F%E7%99%BD%E6%B9%AF%20%E5%89%8D%E9%87%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s53","name":"Bar Doorlight","district":"前金區","cuisine":"調酒酒吧","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"前金區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=Bar%20Doorlight%20%E5%89%8D%E9%87%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"酒吧 BAR 中價 不需訂位"},{"id":"s54","name":"綠 midori","district":"新興區","cuisine":"日式無菜單料理","price":"$$$ 高價","resClass":"yes","resText":"需訂位（10席）","address":"林森一路 160 號，新興區","hours":"每日 11:30–14:30 / 17:30–21:30","phone":"+886 7 241 2158","grating":"4.5","gcount":"773","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%B6%A0%20midori%20%E6%9E%97%E6%A3%AE%E4%B8%80%E8%B7%AF%20160%20%E8%99%9F%EF%BC%8C%E6%96%B0%E8%88%88%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 無菜單 高價 訂位"},{"id":"s55","name":"善川","district":"新興區","cuisine":"日式無菜單料理","price":"$$$ 高價","resClass":"yes","resText":"需訂位","address":"復興一路 131 號，新興區","hours":"三～日 18:00–21:30，週一二公休","phone":"","grating":"4.8","gcount":"98","hlLabel":"✦ 隱藏亮點","hlText":"必點：金沙小卷＆水煮牛，兩道都是口袋名菜！","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%96%84%E5%B7%9D%20%E5%BE%A9%E8%88%88%E4%B8%80%E8%B7%AF%20131%20%E8%99%9F%EF%BC%8C%E6%96%B0%E8%88%88%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 無菜單 高價 訂位"},{"id":"s56","name":"Nobut Cafe","district":"新興區","cuisine":"精品咖啡","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"新興區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=Nobut%20Cafe%20%E6%96%B0%E8%88%88%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"咖啡 中價 不需訂位"},{"id":"s57","name":"解憂好食商行","district":"新興區","cuisine":"台式輕食","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"新興區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%A7%A3%E6%86%82%E5%A5%BD%E9%A3%9F%E5%95%86%E8%A1%8C%20%E6%96%B0%E8%88%88%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 輕食 中價 不需訂位"},{"id":"s58","name":"一本拉麵本店","district":"新興區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位（常排隊）","address":"玉竹二街 5 號，新興區","hours":"每日 12:00–21:00（週末 12–16 / 17–21）","phone":"+886 7 216 3029","grating":"4.4","gcount":"1,640","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E4%B8%80%E6%9C%AC%E6%8B%89%E9%BA%B5%E6%9C%AC%E5%BA%97%20%E7%8E%89%E7%AB%B9%E4%BA%8C%E8%A1%97%205%20%E8%99%9F%EF%BC%8C%E6%96%B0%E8%88%88%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s59","name":"初代花山拉麵","district":"新興區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"新興區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%88%9D%E4%BB%A3%E8%8A%B1%E5%B1%B1%E6%8B%89%E9%BA%B5%20%E6%96%B0%E8%88%88%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s60","name":"早漁早午餐","district":"三民區","cuisine":"早午餐","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"荔枝街 21 號，三民區","hours":"二～日 09:00–19:30（日至 17:00），週一公休","phone":"","grating":"4.9","gcount":"118","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%97%A9%E6%BC%81%E6%97%A9%E5%8D%88%E9%A4%90%20%E8%8D%94%E6%9E%9D%E8%A1%97%2021%20%E8%99%9F%EF%BC%8C%E4%B8%89%E6%B0%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"早午餐 台式 中價 不需訂位"},{"id":"s61","name":"喬思手作餐坊","district":"三民區","cuisine":"手作餐坊","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"三民區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"✦ 隱藏亮點","hlText":"必點：奶油海膽、辣奶香起司燻雞，兩款口味都是招牌！","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%96%AC%E6%80%9D%E6%89%8B%E4%BD%9C%E9%A4%90%E5%9D%8A%20%E4%B8%89%E6%B0%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"早午餐 手作 中價 不需訂位"},{"id":"s62","name":"九九食堂","district":"三民區","cuisine":"日式定食","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"大昌二路 567 號，三民區","hours":"一～六 11:00–14:00 / 17:00–20:00，週日公休","phone":"+886 927 596 965","grating":"4.2","gcount":"553","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E4%B9%9D%E4%B9%9D%E9%A3%9F%E5%A0%82%20%E5%A4%A7%E6%98%8C%E4%BA%8C%E8%B7%AF%20567%20%E8%99%9F%EF%BC%8C%E4%B8%89%E6%B0%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 平價 不需訂位"},{"id":"s63","name":"沐瀧家拉麵屋","district":"三民區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"建興路 371 號，三民區","hours":"","phone":"","grating":"4.8","gcount":"919","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%B2%90%E7%80%A7%E5%AE%B6%E6%8B%89%E9%BA%B5%E5%B1%8B%20%E5%BB%BA%E8%88%88%E8%B7%AF%20371%20%E8%99%9F%EF%BC%8C%E4%B8%89%E6%B0%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s64","name":"台灣陽春拉麵","district":"三民區","cuisine":"台式麵食","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"三民區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%8F%B0%E7%81%A3%E9%99%BD%E6%98%A5%E6%8B%89%E9%BA%B5%20%E4%B8%89%E6%B0%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 麵食 平價 不需訂位"},{"id":"s65","name":"吉胤家","district":"三民區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"三民區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%90%89%E8%83%A4%E5%AE%B6%20%E4%B8%89%E6%B0%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s66","name":"貳水 Aqua² 拉麵","district":"三民區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"三民區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%B2%B3%E6%B0%B4%20Aqua%C2%B2%20%E6%8B%89%E9%BA%B5%20%E4%B8%89%E6%B0%91%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s67","name":"Cava fuoco","district":"苓雅區","cuisine":"中東義式融合","price":"$$$ 高價","resClass":"yes","resText":"需訂位","address":"永明街 27 號，苓雅區","hours":"每日 17:30–22:30","phone":"+886 7 211 1913","grating":"4.5","gcount":"81","hlLabel":"✦ 隱藏亮點","hlText":"獨特工業風空間，必點招牌老鷹紅豆飯！","mapUrl":"https://www.google.com/maps/search/?api=1&query=Cava%20fuoco%20%E6%B0%B8%E6%98%8E%E8%A1%97%2027%20%E8%99%9F%EF%BC%8C%E8%8B%93%E9%9B%85%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"中東 義式 高價 訂位"},{"id":"s68","name":"九記食糖水","district":"苓雅區","cuisine":"港式糖水","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"苓雅區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E4%B9%9D%E8%A8%98%E9%A3%9F%E7%B3%96%E6%B0%B4%20%E8%8B%93%E9%9B%85%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"甜點 港式 平價 不需訂位"},{"id":"s69","name":"TAGL Deli Porchetteria","district":"苓雅區","cuisine":"義式熟食","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"苓雅區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=TAGL%20Deli%20Porchetteria%20%E8%8B%93%E9%9B%85%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"義式 西式 中高價 訂位"},{"id":"s70","name":"雞飛鳥拉麵","district":"苓雅區","cuisine":"雞湯拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"光華一路 182 號，苓雅區","hours":"每日 11:30–13:30 / 17:00–20:00","phone":"+886 7 223 0065","grating":"4.5","gcount":"382","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%9B%9E%E9%A3%9B%E9%B3%A5%E6%8B%89%E9%BA%B5%20%E5%85%89%E8%8F%AF%E4%B8%80%E8%B7%AF%20182%20%E8%99%9F%EF%BC%8C%E8%8B%93%E9%9B%85%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s71","name":"一本拉麵．梟","district":"苓雅區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"苓雅區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E4%B8%80%E6%9C%AC%E6%8B%89%E9%BA%B5%EF%BC%8E%E6%A2%9F%20%E8%8B%93%E9%9B%85%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s72","name":"魚月麵羹","district":"苓雅區","cuisine":"台式麵羹","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"苓雅區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%AD%9A%E6%9C%88%E9%BA%B5%E7%BE%B9%20%E8%8B%93%E9%9B%85%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 麵食 平價 不需訂位"},{"id":"s73","name":"晴拉麵","district":"苓雅區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"苓雅區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%99%B4%E6%8B%89%E9%BA%B5%20%E8%8B%93%E9%9B%85%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s74","name":"先生千層 Ft. 冰屋","district":"前鎮區","cuisine":"千層蛋糕","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市前鎮區廣西路 498 號","hours":"每日 11:00–20:00（售完為止）","phone":"+886 7 334 4527","grating":"4.3","gcount":"1,762","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%85%88%E7%94%9F%E5%8D%83%E5%B1%A4%20Ft.%20%E5%86%B0%E5%B1%8B%20%E5%BB%A3%E8%A5%BF%E8%B7%AF%20498%20%E8%99%9F%EF%BC%8C%E5%89%8D%E9%8E%AE%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"甜點 千層 中價 不需訂位"},{"id":"s75","name":"Grill Ukai 西餐","district":"前鎮區","cuisine":"西餐Fine Dining","price":"$$$$ 頂級","resClass":"yes","resText":"需訂位","address":"中山二路 199 號 3F，前鎮區（Silks Club）","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=Grill%20Ukai%20%E8%A5%BF%E9%A4%90%20%E4%B8%AD%E5%B1%B1%E4%BA%8C%E8%B7%AF%20199%20%E8%99%9F%203F%EF%BC%8C%E5%89%8D%E9%8E%AE%E5%8D%80%EF%BC%88Silks%20Club%EF%BC%89%20%E9%AB%98%E9%9B%84","tags":"西餐 高價 訂位"},{"id":"s76","name":"Ukai-tei 鐵板燒","district":"前鎮區","cuisine":"日式鐵板燒","price":"$$$$ 頂級","resClass":"yes","resText":"需訂位","address":"中山二路 199 號 3F，前鎮區","hours":"每日 12:00–15:00 / 18:00–22:00","phone":"+886 7 973 0122","grating":"4.6","gcount":"1,457","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=Ukai-tei%20%E9%90%B5%E6%9D%BF%E7%87%92%20%E4%B8%AD%E5%B1%B1%E4%BA%8C%E8%B7%AF%20199%20%E8%99%9F%203F%EF%BC%8C%E5%89%8D%E9%8E%AE%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 鐵板燒 高價 訂位"},{"id":"s77","name":"Ukai Kaiseki 懷石料理","district":"前鎮區","cuisine":"日式懷石料理","price":"$$$$ 頂級","resClass":"yes","resText":"需訂位","address":"中山二路 199 號，前鎮區（Silks Club）","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=Ukai%20Kaiseki%20%E6%87%B7%E7%9F%B3%E6%96%99%E7%90%86%20%E4%B8%AD%E5%B1%B1%E4%BA%8C%E8%B7%AF%20199%20%E8%99%9F%EF%BC%8C%E5%89%8D%E9%8E%AE%E5%8D%80%EF%BC%88Silks%20Club%EF%BC%89%20%E9%AB%98%E9%9B%84","tags":"日式 懷石 高價 訂位"},{"id":"s78","name":"一幻拉麵（高雄店）","district":"前鎮區","cuisine":"海老拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"林森四路 189 號 B1，前鎮區","hours":"","phone":"","grating":"4.1","gcount":"247","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E4%B8%80%E5%B9%BB%E6%8B%89%E9%BA%B5%EF%BC%88%E9%AB%98%E9%9B%84%E5%BA%97%EF%BC%89%20%E6%9E%97%E6%A3%AE%E5%9B%9B%E8%B7%AF%20189%20%E8%99%9F%20B1%EF%BC%8C%E5%89%8D%E9%8E%AE%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中高價 不需訂位"},{"id":"s79","name":"麵屋また明日","district":"前鎮區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"前鎮區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%BA%B5%E5%B1%8B%E3%81%BE%E3%81%9F%E6%98%8E%E6%97%A5%20%E5%89%8D%E9%8E%AE%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s80","name":"GA 冰淇淋","district":"鳳山區","cuisine":"義式冰淇淋","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"鳳山區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=GA%20%E5%86%B0%E6%B7%87%E6%B7%8B%20%E9%B3%B3%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"甜點 冰淇淋 中價 不需訂位"},{"id":"s81","name":"麵場小船","district":"鳳山區","cuisine":"日式拉麵","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"自強二路 116 號，鳳山區","hours":"一二三五六日 11:00–14:00 / 17:00–22:00，週四公休","phone":"+886 7 768 9303","grating":"4.3","gcount":"752","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%BA%B5%E5%A0%B4%E5%B0%8F%E8%88%B9%20%E8%87%AA%E5%BC%B7%E4%BA%8C%E8%B7%AF%20116%20%E8%99%9F%EF%BC%8C%E9%B3%B3%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 平價 不需訂位"},{"id":"s82","name":"挑金","district":"鳳山區","cuisine":"台式小吃","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"鳳山區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%8C%91%E9%87%91%20%E9%B3%B3%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 小吃 平價 不需訂位"},{"id":"s83","name":"麵柒八","district":"鳳山區","cuisine":"台式麵食","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"鳳山區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%BA%B5%E6%9F%92%E5%85%AB%20%E9%B3%B3%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 麵食 平價 不需訂位"},{"id":"s84","name":"豐王豚拉麵","district":"鳳山區","cuisine":"豚骨拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"安寧街 166 號，鳳山區","hours":"二～五 17:00–20:30，六日加開午餐 11:00–13:30，週一公休","phone":"","grating":"4.8","gcount":"1,068","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%B1%90%E7%8E%8B%E8%B1%9A%E6%8B%89%E9%BA%B5%20%E5%AE%89%E5%AF%A7%E8%A1%97%20166%20%E8%99%9F%EF%BC%8C%E9%B3%B3%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s85","name":"村野拉麵","district":"鳳山區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"武慶南路 226 號，鳳山區","hours":"每日 11:30–14:00 / 18:00–21:00（六日午餐 17:30 開始）","phone":"","grating":"4.3","gcount":"1,722","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%9D%91%E9%87%8E%E6%8B%89%E9%BA%B5%20%E6%AD%A6%E6%85%B6%E5%8D%97%E8%B7%AF%20226%20%E8%99%9F%EF%BC%8C%E9%B3%B3%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s86","name":"誠拉麵","district":"鳳山區","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"文豐路 21 號，鳳山區","hours":"一二三五 17:30–21:00，六日加開午餐，週四公休","phone":"","grating":"4.6","gcount":"793","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%AA%A0%E6%8B%89%E9%BA%B5%20%E6%96%87%E8%B1%90%E8%B7%AF%2021%20%E8%99%9F%EF%BC%8C%E9%B3%B3%E5%B1%B1%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s87","name":"辣訣－祕藏鍋物","district":"其他地區 & 特色店","cuisine":"麻辣鍋物","price":"$$ 中價","resClass":"rec","resText":"建議訂位","address":"仁武區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%BE%A3%E8%A8%A3%EF%BC%8D%E7%A5%95%E8%97%8F%E9%8D%8B%E7%89%A9%20%E4%BB%81%E6%AD%A6%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"火鍋 鍋物 中價 訂位"},{"id":"s88","name":"LAICHIAH","district":"其他地區 & 特色店","cuisine":"台灣創意料理","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"大寮區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=LAICHIAH%20%E5%A4%A7%E5%AF%AE%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"台式 創意 中高價 訂位"},{"id":"s89","name":"甜點事務所","district":"其他地區 & 特色店","cuisine":"法式甜點","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"✦ 隱藏亮點","hlText":"可預訂客製生日蛋糕，送禮、慶生的口袋名單 🎂","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%94%9C%E9%BB%9E%E4%BA%8B%E5%8B%99%E6%89%80%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"甜點 中價 不需訂位"},{"id":"s90","name":"小酌 FEWdrink","district":"其他地區 & 特色店","cuisine":"調酒酒吧","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%B0%8F%E9%85%8C%20FEWdrink%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"酒吧 BAR 中價 不需訂位"},{"id":"s91","name":"1658 港式創意料理","district":"其他地區 & 特色店","cuisine":"港式創意","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=1658%20%E6%B8%AF%E5%BC%8F%E5%89%B5%E6%84%8F%E6%96%99%E7%90%86%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"港式 創意 中高價 訂位"},{"id":"s92","name":"瑠美","district":"其他地區 & 特色店","cuisine":"日式料理","price":"$$ 中價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%91%A0%E7%BE%8E%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"日式 居酒屋 中價 訂位"},{"id":"s93","name":"木木日九炭火料理","district":"其他地區 & 特色店","cuisine":"日式炭火料理","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%9C%A8%E6%9C%A8%E6%97%A5%E4%B9%9D%E7%82%AD%E7%81%AB%E6%96%99%E7%90%86%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"日式 燒烤 炭火 中高價 訂位"},{"id":"s94","name":"國秀四維店","district":"其他地區 & 特色店","cuisine":"台式麵食","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%9C%8B%E7%A7%80%E5%9B%9B%E7%B6%AD%E5%BA%97%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"台式 麵食 平價 不需訂位"},{"id":"s95","name":"1928燒肉總鋪","district":"其他地區 & 特色店","cuisine":"日式燒肉","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=1928%E7%87%92%E8%82%89%E7%B8%BD%E9%8B%AA%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"燒肉 日式 中高價 訂位"},{"id":"s96","name":"鴨點棧","district":"其他地區 & 特色店","cuisine":"台式鴨肉料理","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%B4%A8%E9%BB%9E%E6%A3%A7%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"台式 鴨肉 中價 不需訂位"},{"id":"s97","name":"音樂盒法式鄉村餐廳","district":"其他地區 & 特色店","cuisine":"法式料理","price":"$$$ 高價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%9F%B3%E6%A8%82%E7%9B%92%E6%B3%95%E5%BC%8F%E9%84%89%E6%9D%91%E9%A4%90%E5%BB%B3%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"法式 西餐 高價 訂位"},{"id":"s98","name":"允久居酒屋","district":"其他地區 & 特色店","cuisine":"日式居酒屋","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%85%81%E4%B9%85%E5%B1%85%E9%85%92%E5%B1%8B%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"日式 居酒屋 中價 不需訂位"},{"id":"s99","name":"義・食光","district":"其他地區 & 特色店","cuisine":"義式料理","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%BE%A9%E3%83%BB%E9%A3%9F%E5%85%89%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"義式 義大利麵 中價 不需訂位"},{"id":"s100","name":"伊気燒肉","district":"其他地區 & 特色店","cuisine":"日式燒肉","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E4%BC%8A%E6%B0%97%E7%87%92%E8%82%89%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"燒肉 日式 中高價 訂位"},{"id":"s101","name":"Limelight 來夢來人","district":"其他地區 & 特色店","cuisine":"咖啡／調酒","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=Limelight%20%E4%BE%86%E5%A4%A2%E4%BE%86%E4%BA%BA%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"咖啡 酒吧 中價 不需訂位"},{"id":"s102","name":"吉吉ジジ甜點店","district":"其他地區 & 特色店","cuisine":"水果三明治","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"✦ 隱藏亮點","hlText":"水果三明治專賣！品項每日不同，建議先查 IG 確認。","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%90%89%E5%90%89%E3%82%B8%E3%82%B8%E7%94%9C%E9%BB%9E%E5%BA%97%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"甜點 日式 中價 不需訂位"},{"id":"s103","name":"新中奇理髮廳","district":"其他地區 & 特色店","cuisine":"創意料理酒吧","price":"$$ 中價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%96%B0%E4%B8%AD%E5%A5%87%E7%90%86%E9%AB%AE%E5%BB%B3%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"台式 創意 中價 訂位"},{"id":"s104","name":"ABURI","district":"其他地區 & 特色店","cuisine":"日式炙燒料理","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=ABURI%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"日式 燒烤 中高價 訂位"},{"id":"s105","name":"萬萬液廊","district":"其他地區 & 特色店","cuisine":"創意酒吧","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%90%AC%E8%90%AC%E6%B6%B2%E5%BB%8A%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"酒吧 中價 不需訂位"},{"id":"s106","name":"蘑菇ＣＵＲＲＹ咖哩","district":"其他地區 & 特色店","cuisine":"日式咖哩","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%98%91%E8%8F%87%EF%BC%A3%EF%BC%B5%EF%BC%B2%EF%BC%B2%EF%BC%B9%E5%92%96%E5%93%A9%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"咖哩 中價 不需訂位"},{"id":"s107","name":"Error 404 Bar","district":"其他地區 & 特色店","cuisine":"主題酒吧","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=Error%20404%20Bar%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"酒吧 中價 不需訂位"},{"id":"s108","name":"Pizzeria da Chou 老周披薩","district":"其他地區 & 特色店","cuisine":"那不勒斯披薩","price":"$$ 中價","resClass":"rec","resText":"建議訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=Pizzeria%20da%20Chou%20%E8%80%81%E5%91%A8%E6%8A%AB%E8%96%A9%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"義式 披薩 中價 不需訂位"},{"id":"s109","name":"D.D.C. Dhyana De Cyber Bistro","district":"其他地區 & 特色店","cuisine":"Cyberpunk咖啡酒吧","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=D.D.C.%20Dhyana%20De%20Cyber%20Bistro%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"咖啡 酒吧 中價 不需訂位"},{"id":"s110","name":"快義點","district":"其他地區 & 特色店","cuisine":"台式點心","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%BF%AB%E7%BE%A9%E9%BB%9E%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"台式 點心 平價 不需訂位"},{"id":"s111","name":"盛食藝鐵板燒","district":"其他地區 & 特色店","cuisine":"日式鐵板燒","price":"$$$$ 高價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%9B%9B%E9%A3%9F%E8%97%9D%E9%90%B5%E6%9D%BF%E7%87%92%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"日式 鐵板燒 高價 訂位"},{"id":"s112","name":"燒肉smile","district":"其他地區 & 特色店","cuisine":"日式燒肉","price":"$$ 中價","resClass":"rec","resText":"建議訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E7%87%92%E8%82%89smile%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"燒肉 日式 中價 訂位"},{"id":"s113","name":"PASTAIO","district":"其他地區 & 特色店","cuisine":"義式麵食","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=PASTAIO%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"義式 義大利麵 中價 不需訂位"},{"id":"s114","name":"飛蒔","district":"其他地區 & 特色店","cuisine":"日式創意料理","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%A3%9B%E8%92%94%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"日式 中高價 訂位"},{"id":"s115","name":"GALAKO","district":"其他地區 & 特色店","cuisine":"日式料理","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=GALAKO%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"日式 中高價 訂位"},{"id":"s116","name":"LAB PIER 2","district":"其他地區 & 特色店","cuisine":"倉庫咖啡廳","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"駁二藝術特區","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=LAB%20PIER%202%20%E9%A7%81%E4%BA%8C%E8%97%9D%E8%A1%93%E7%89%B9%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"咖啡 輕食 中價 不需訂位"},{"id":"s117","name":"島語自助餐","district":"其他地區 & 特色店","cuisine":"台式自助餐","price":"$ 平價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%B3%B6%E8%AA%9E%E8%87%AA%E5%8A%A9%E9%A4%90%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"台式 自助餐 平價 不需訂位"},{"id":"s118","name":"老闆有肉日式燒肉","district":"其他地區 & 特色店","cuisine":"日式燒肉","price":"$$$ 中高價","resClass":"rec","resText":"建議訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E8%80%81%E9%97%86%E6%9C%89%E8%82%89%E6%97%A5%E5%BC%8F%E7%87%92%E8%82%89%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"燒肉 日式 中高價 訂位"},{"id":"s119","name":"果然匯","district":"其他地區 & 特色店","cuisine":"蔬食料理","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%9E%9C%E7%84%B6%E5%8C%AF%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"蔬食 素食 中價 不需訂位"},{"id":"s120","name":"沐㞾 Moonee","district":"其他地區 & 特色店","cuisine":"精緻甜點","price":"$$ 中價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%B2%90%E3%9E%BE%20Moonee%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"甜點 中價 訂位"},{"id":"s121","name":"里昂鐵板燒","district":"其他地區 & 特色店","cuisine":"日式鐵板燒","price":"$$$ 高價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%87%8C%E6%98%82%E9%90%B5%E6%9D%BF%E7%87%92%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"日式 鐵板燒 高價 訂位"},{"id":"s122","name":"川月生魚片","district":"其他地區 & 特色店","cuisine":"生魚片海鮮","price":"$$ 中價","resClass":"rec","resText":"建議訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E5%B7%9D%E6%9C%88%E7%94%9F%E9%AD%9A%E7%89%87%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"日式 生魚片 中價 不需訂位"},{"id":"s123","name":"比爾比夫","district":"其他地區 & 特色店","cuisine":"西式牛排","price":"$$$ 中高價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"","hlText":"","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%AF%94%E7%88%BE%E6%AF%94%E5%A4%AB%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"西式 牛排 中高價 訂位"},{"id":"s124","name":"らーめん壱","district":"其他地區 & 特色店","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"成功一路","hours":"","phone":"","grating":"","gcount":"","hlLabel":"✦ 隱藏亮點","hlText":"除了濃湯醬油拉麵，排骨蛋炒飯也非常值得點！","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E3%82%89%E3%83%BC%E3%82%81%E3%82%93%E5%A3%B1%20%E6%88%90%E5%8A%9F%E4%B8%80%E8%B7%AF%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s125","name":"中村製麵","district":"其他地區 & 特色店","cuisine":"日式麵食","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"成功一路","hours":"","phone":"","grating":"","gcount":"","hlLabel":"✦ 隱藏亮點","hlText":"炸物表現優秀，且有隱藏版口味，記得詢問店員！","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E4%B8%AD%E6%9D%91%E8%A3%BD%E9%BA%B5%20%E6%88%90%E5%8A%9F%E4%B8%80%E8%B7%AF%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 麵食 中價 不需訂位"},{"id":"s126","name":"麵屋高","district":"其他地區 & 特色店","cuisine":"日式拉麵","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"美麗島站附近","hours":"","phone":"","grating":"","gcount":"","hlLabel":"✦ 隱藏亮點","hlText":"特色在於炙燒香氣的叉燒，以及提供大量蔬菜配料！","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E9%BA%B5%E5%B1%8B%E9%AB%98%20%E7%BE%8E%E9%BA%97%E5%B3%B6%E7%AB%99%E9%99%84%E8%BF%91%20%E9%AB%98%E9%9B%84","tags":"日式 拉麵 中價 不需訂位"},{"id":"s127","name":"悅米義廚坊","district":"其他地區 & 特色店","cuisine":"義式料理","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"✦ 隱藏亮點","hlText":"必點：青醬義大利麵＆酥皮濃湯，兩道都是招牌！","mapUrl":"https://www.google.com/maps/search/?api=1&query=%E6%82%85%E7%B1%B3%E7%BE%A9%E5%BB%9A%E5%9D%8A%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"義式 義大利麵 中價 不需訂位"},{"id":"s128","name":"OCEAN BAKERY","district":"其他地區 & 特色店","cuisine":"法式烘焙／可頌","price":"$$ 中價","resClass":"no","resText":"不需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"✦ 隱藏亮點","hlText":"想吃可頌就來這！高雄可頌首選店家 🥐","mapUrl":"https://www.google.com/maps/search/?api=1&query=OCEAN%20BAKERY%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"麵包 烘焙 早午餐 中價 不需訂位"},{"id":"s129","name":"DOWA SKY LOUNGE","district":"其他地區 & 特色店","cuisine":"景觀餐廳／調酒","price":"$$$ 中高價","resClass":"yes","resText":"需訂位（靠窗位）","address":"中山二路 260 號 30F，前鎮區","hours":"三～五 14:00–22:30，六日 12:00–22:30，週一二公休","phone":"+886 7 536 8388","grating":"4.3","gcount":"850","hlLabel":"✦ 備註","hlText":"如果是為了氣氛、約會或想欣賞高雄港景，值得去；若純粹為了吃飯 CP 值就一般。","mapUrl":"https://www.google.com/maps/search/?api=1&query=DOWA%20SKY%20LOUNGE%20%E4%B8%AD%E5%B1%B1%E4%BA%8C%E8%B7%AF%20260%20%E8%99%9F%2030F%EF%BC%8C%E5%89%8D%E9%8E%AE%E5%8D%80%20%E9%AB%98%E9%9B%84","tags":"酒吧 景觀 西式 中高價 訂位"},{"id":"s130","name":"iride（飛行劇院）","district":"其他地區 & 特色店","cuisine":"體驗設施","price":"$$ 中價","resClass":"yes","resText":"需訂位","address":"高雄市","hours":"","phone":"","grating":"","gcount":"","hlLabel":"✦ 優先推薦","hlText":"高雄名單中的體驗首選！飛行劇院，來高雄必去 ⭐","mapUrl":"https://www.google.com/maps/search/?api=1&query=iride%EF%BC%88%E9%A3%9B%E8%A1%8C%E5%8A%87%E9%99%A2%EF%BC%89%20%E9%AB%98%E9%9B%84%E5%B8%82%20%E9%AB%98%E9%9B%84","tags":"體驗 特殊 中價 訂位"}];
+const LSK = { user:'khfx_user', custom:'khfx_custom', removed:'khfx_removed' };
+let userData = JSON.parse(localStorage.getItem(LSK.user) || 'null');
+let custom   = JSON.parse(localStorage.getItem(LSK.custom) || '[]');
+let removed  = JSON.parse(localStorage.getItem(LSK.removed) || '[]');
+
+// 舊版 visited 資料遷移（index → id）
+if (!userData) {
+  userData = {};
+  try {
+    const old = JSON.parse(localStorage.getItem('kh-food-visited') || '{}');
+    Object.keys(old).forEach(i => { if (old[i] && SEED[i]) userData[SEED[i].id] = { visited:true }; });
+  } catch(e) {}
+  saveUser();
+}
+function saveUser(){ localStorage.setItem(LSK.user, JSON.stringify(userData)); }
+function saveCustom(){ localStorage.setItem(LSK.custom, JSON.stringify(custom)); }
+function saveRemoved(){ localStorage.setItem(LSK.removed, JSON.stringify(removed)); }
+
+function allRestaurants(){ return SEED.filter(r => !removed.includes(r.id)).concat(custom); }
+function getR(id){ return allRestaurants().find(r => r.id === id); }
+function ud(id){ return userData[id] || {}; }
+
+const SEED_DISTRICTS = [...new Set(SEED.map(r=>r.district))];
+function districtOrder(){
+  const extra = [...new Set(custom.map(r=>r.district))].filter(d=>!SEED_DISTRICTS.includes(d));
+  return SEED_DISTRICTS.concat(extra);
+}
+
+// ═══════════ 營業時間解析（支援每日多時段、各日不同時段與跨夜） ═══════════
+const DAY_MAP = {'日':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6};
+function dayList(expr){
+  expr=String(expr||'').replace(/週/g,'').trim();
+  if(expr.includes('每日')||expr==='每天') return [0,1,2,3,4,5,6];
+  const range=/([一二三四五六日])[～~至-]([一二三四五六日])/.exec(expr);
+  if(range){
+    const a=DAY_MAP[range[1]], b=DAY_MAP[range[2]], out=[];
+    if(a<=b){for(let d=a;d<=b;d++)out.push(d)}
+    else{for(let d=a;d<=6;d++)out.push(d);for(let d=0;d<=b;d++)out.push(d)}
+    return [...new Set(out)];
+  }
+  return [...new Set([...expr].filter(c=>DAY_MAP[c]!==undefined).map(c=>DAY_MAP[c]))];
+}
+function parseRanges(text){
+  const toMin=t=>{const [h,m]=t.split(':').map(Number);return h*60+m};
+  const rx=/(\d{1,2}:\d{2})\s*[–\-~～]\s*(\d{1,2}:\d{2})/g;
+  const ranges=[];let m;
+  while((m=rx.exec(text))!==null){
+    const a=toMin(m[1]),b=toMin(m[2]);
+    if(a>=0&&a<1440&&b>=0&&b<=1440) ranges.push([a,b]);
+  }
+  return ranges;
+}
+function parseHours(text){
+  if(!text||!String(text).trim()) return null;
+  const source=String(text).trim();
+  const periods=[];
+  // Preferred structured format: one schedule per line, e.g. 一三五 | 11:00–14:00 / 17:00–21:00
+  if(source.includes('|')){
+    for(const line of source.split(/\n+/)){
+      const ix=line.indexOf('|'); if(ix<0) continue;
+      const days=dayList(line.slice(0,ix)); const ranges=parseRanges(line.slice(ix+1));
+      if(days.length&&ranges.length) periods.push({days,ranges});
+    }
+    if(periods.length) return {periods};
+  }
+  // Legacy free-text format: extract each weekday group with its own adjacent time range(s).
+  const rx=/(每日|每天|[一二三四五六日]+\s*[～~至-]\s*[一二三四五六日]|[一二三四五六日]+)\s*((?:\d{1,2}:\d{2}\s*[–\-~～]\s*\d{1,2}:\d{2})(?:\s*\/\s*\d{1,2}:\d{2}\s*[–\-~～]\s*\d{1,2}:\d{2})*)/g;
+  let m;
+  while((m=rx.exec(source))!==null){
+    const days=dayList(m[1]); const ranges=parseRanges(m[2]);
+    if(days.length&&ranges.length) periods.push({days,ranges});
+  }
+  // Fallback for older entries whose weekday notation is incomplete.
+  if(!periods.length){
+    const ranges=parseRanges(source); if(!ranges.length) return null;
+    let days=source.includes('每日')||source.includes('每天')?[0,1,2,3,4,5,6]:dayList(source);
+    if(!days.length) days=[0,1,2,3,4,5,6];
+    periods.push({days,ranges});
+  }
+  const closures=/週([一二三四五六日]+)公休/g;
+  let c;
+  while((c=closures.exec(source))!==null){
+    const closed=[...c[1]].map(x=>DAY_MAP[x]).filter(x=>x!==undefined);
+    periods.forEach(p=>p.days=p.days.filter(d=>!closed.includes(d)));
+  }
+  const valid=periods.filter(p=>p.days.length&&p.ranges.length);
+  return valid.length?{periods:valid}:null;
+}
+function isOpenNow(hoursText){
+  const parsed=parseHours(hoursText); if(!parsed) return null;
+  const now=new Date(),day=now.getDay(),minute=now.getHours()*60+now.getMinutes(),yesterday=(day+6)%7;
+  // Yesterday's overnight interval remains open after midnight.
+  for(const p of parsed.periods){
+    if(p.days.includes(yesterday)&&p.ranges.some(([open,close])=>close<open&&minute<close)) return true;
+  }
+  for(const p of parsed.periods){
+    if(p.days.includes(day)&&p.ranges.some(([open,close])=>close<open?(minute>=open):(minute>=open&&minute<close))) return true;
+  }
+  return false;
+}
+
+// ═══════════ 渲染 ═══════════
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let activeFilter='all', activeSearch='', nowOpenActive=false;
+const reviewDrafts = {}; // Keep unsaved stars/text and panel visibility across re-renders.
+
+function starStr(n){ return '★'.repeat(n)+'☆'.repeat(5-n); }
+
+function cardHTML(r){
+  const u=ud(r.id);
+  const draft=reviewDrafts[r.id]||{};
+  const shownStars=Number.isInteger(draft.stars)?draft.stars:(u.stars||0);
+  const shownReview=typeof draft.review==='string'?draft.review:(u.review||'');
+  const open=isOpenNow(r.hours);
+  const badge = open===null?'' : open?'<span class="open-badge">營業中</span>':'<span class="closed-badge">已休息</span>';
+  const resCls = r.resClass ? 'res-'+r.resClass : '';
+  const dirDest = encodeURIComponent(r.name + ' ' + (r.address||'高雄'));
+  let rows='';
+  if(r.address) rows+=`<div class="row"><span class="icon">📍</span><span>${esc(r.address)}</span></div>`;
+  if(r.hours)   rows+=`<div class="row"><span class="icon">⏰</span><span>${esc(r.hours)}</span></div>`;
+  if(r.phone)   rows+=`<div class="row"><span class="icon">📞</span><span>${esc(r.phone)}</span></div>`;
+  let hl='';
+  if(r.hlText) hl=`<div class="highlight"><span class="highlight-label">${esc(r.hlLabel||'✦ 隱藏亮點')}</span>${esc(r.hlText)}</div>`;
+  let myBox='';
+  if(u.stars||u.review) myBox=`<div class="my-review-box"><span class="my-stars">${starStr(u.stars||0)}</span><span class="my-review-date">${esc(u.date||'')}</span>${u.review?'<br>'+esc(u.review):''}</div>`;
+  const g = r.grating?`<span class="g-rating">★ ${esc(r.grating)} <span class="cnt">(${esc(r.gcount)})</span></span>`:'';
+  const customMark = r.id.startsWith('c')?'<span class="tag custom-mark">自行新增</span>':'';
+  return `<div class="card ${u.visited?'is-visited':''}" data-id="${r.id}">
+    <div class="card-top"><span><span class="card-name">${esc(r.name)}</span>${badge}</span>${g}
+      <button class="visited ${u.visited?'done':''}" data-act="visit" title="標記已去過">✓</button></div>
+    <div class="tags">
+      ${r.cuisine?`<span class="tag cuisine">${esc(r.cuisine)}</span>`:''}
+      ${r.price?`<span class="tag price">${esc(r.price)}</span>`:''}
+      ${r.resText?`<span class="tag ${resCls}">${esc(r.resText)}</span>`:''}
+      ${customMark}
+    </div>
+    ${rows?`<div class="card-info">${rows}</div>`:''}
+    ${hl}${myBox}
+    <div class="review-panel ${draft.open?'show':''}" id="rp-${r.id}">
+      <div class="star-row">${[1,2,3,4,5].map(n=>`<button class="star-btn ${shownStars>=n?'lit':''}" data-act="star" data-v="${n}">★</button>`).join('')}</div>
+      <textarea placeholder="寫下你的心得…（吃了什麼、好不好吃、會不會再來）">${esc(shownReview)}</textarea>
+      <div class="rp-actions">
+        <button class="mini-btn" data-act="save-review">💾 儲存評價</button>
+        <button class="mini-btn danger" data-act="clear-review">清除評價</button>
+      </div>
+    </div>
+    <div class="card-footer">
+      <button class="mini-btn" data-act="toggle-review">✏️ 我的評價</button>
+      <a class="mini-btn" style="text-decoration:none" href="https://www.google.com/maps/dir/?api=1&destination=${dirDest}&travelmode=driving" target="_blank">🗺 導航</a>
+      <button class="mini-btn danger" data-act="del">🗑</button>
+      <a class="card-link" href="${esc(r.mapUrl||('https://maps.google.com/?q='+dirDest))}" target="_blank">Google Maps →</a>
+    </div>
+  </div>`;
+}
+
+function matches(r){
+  const u=ud(r.id);
+  const hay=(r.tags+' '+r.cuisine+' '+r.name+' '+(r.resText||'')).toLowerCase();
+  const mF = activeFilter==='all' || (activeFilter==='__hl' ? !!r.hlText : hay.includes(activeFilter.toLowerCase()));
+  const mS = !activeSearch || hay.includes(activeSearch) || r.district.includes(activeSearch);
+  const mO = !nowOpenActive || isOpenNow(r.hours)===true;
+  const vf=document.getElementById('visit-filter').value;
+  const mV = vf==='all' || (vf==='un'&&!u.visited) || (vf==='done'&&u.visited) || (vf==='rated'&&(u.stars||u.review));
+  return mF&&mS&&mO&&mV;
+}
+
+function render(){
+  const list=document.getElementById('list');
+  const rs=allRestaurants();
+  let html=''; let visible=0;
+  districtOrder().forEach(d=>{
+    const items=rs.filter(r=>r.district===d && matches(r));
+    if(!items.length) return;
+    visible+=items.length;
+    const total=rs.filter(r=>r.district===d).length;
+    html+=`<section class="district"><div class="district-header"><span class="district-name">${esc(d)}</span><span class="district-count">顯示 ${items.length} / 共 ${total} 間</span></div><div class="card-grid">${items.map(cardHTML).join('')}</div></section>`;
+  });
+  list.innerHTML=html;
+  document.getElementById('no-results').style.display = visible?'none':'block';
+  // top stats
+  document.getElementById('st-total').textContent=rs.length;
+  const vc=rs.filter(r=>ud(r.id).visited).length;
+  document.getElementById('st-visited').textContent=vc;
+  const stars=rs.map(r=>ud(r.id).stars).filter(Boolean);
+  document.getElementById('st-avg').textContent = stars.length? (stars.reduce((a,b)=>a+b,0)/stars.length).toFixed(1)+'★':'–';
+  document.getElementById('st-districts').textContent=districtOrder().length;
+}
+
+// 事件委派
+document.getElementById('list').addEventListener('input', e=>{
+  if(!e.target.matches('.review-panel textarea')) return;
+  const card=e.target.closest('.card'); if(!card) return;
+  const id=card.dataset.id; reviewDrafts[id]=reviewDrafts[id]||{stars:ud(id).stars||0,open:true};
+  reviewDrafts[id].review=e.target.value; reviewDrafts[id].open=true;
+});
+document.getElementById('list').addEventListener('click', e=>{
+  const btn=e.target.closest('[data-act]'); if(!btn) return;
+  const card=btn.closest('.card'); const id=card.dataset.id; const act=btn.dataset.act;
+  if(act==='visit'){
+    userData[id]=ud(id); userData[id].visited=!userData[id].visited; saveUser(); render();
+  } else if(act==='toggle-review'){
+    reviewDrafts[id]=reviewDrafts[id]||{stars:ud(id).stars||0,review:ud(id).review||''};
+    reviewDrafts[id].open=!reviewDrafts[id].open; render();
+  } else if(act==='star'){
+    const v=+btn.dataset.v;
+    reviewDrafts[id]=reviewDrafts[id]||{stars:ud(id).stars||0,review:card.querySelector('textarea').value};
+    reviewDrafts[id].stars=v; reviewDrafts[id].review=card.querySelector('textarea').value; reviewDrafts[id].open=true;
+    card.querySelectorAll('.star-btn').forEach((s,i)=>s.classList.toggle('lit',i<v));
+  } else if(act==='save-review'){
+    const draft=reviewDrafts[id]||{};
+    const v=Number.isInteger(draft.stars)?draft.stars:(ud(id).stars||0);
+    const txt=card.querySelector('textarea').value.trim();
+    userData[id]=ud(id);
+    if(v>0) userData[id].stars=v; else delete userData[id].stars;
+    userData[id].review=txt;
+    userData[id].visited=true;
+    userData[id].date=new Date().toLocaleDateString('zh-TW');
+    delete reviewDrafts[id]; saveUser(); render(); toast('評價已儲存 ⭐');
+  } else if(act==='clear-review'){
+    if(!confirm('清除這間店的星等與心得？')) return;
+    userData[id]=ud(id); delete userData[id].stars; delete userData[id].review; delete userData[id].date;
+    delete reviewDrafts[id]; saveUser(); render();
+  } else if(act==='del'){
+    const r=getR(id);
+    if(!confirm(`確定要從清單刪除「${r.name}」嗎？`)) return;
+    if(id.startsWith('c')) { custom=custom.filter(x=>x.id!==id); saveCustom(); }
+    else { removed.push(id); saveRemoved(); }
+    render(); toast('已刪除，可在 💾 備份頁還原內建店家');
+  }
+});
+
+// ═══════════ 篩選 ═══════════
+function setFilter(btn){
+  document.querySelectorAll('.filter-btn:not(.now-open-btn)').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); activeFilter=btn.dataset.f; render();
+}
+function toggleNowOpen(btn){ nowOpenActive=!nowOpenActive; btn.classList.toggle('active',nowOpenActive); render(); }
+let searchTimer;
+function onSearch(v){ clearTimeout(searchTimer); searchTimer=setTimeout(()=>{activeSearch=v.toLowerCase().trim();render();},200); }
+
+// ═══════════ Modal ═══════════
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('show'); }));
+
+// ═══════════ 新增餐廳 ═══════════
+const COMMON_DISTRICTS=['鹽埕區','左營區','鼓山區','前金區','新興區','三民區','苓雅區','前鎮區','鳳山區','楠梓區','小港區','旗津區','仁武區','大寮區','鳥松區','岡山區','橋頭區','其他地區 & 特色店'];
+function openAddModal(){
+  const sel=document.getElementById('f-district');
+  const ds=[...new Set(COMMON_DISTRICTS.concat(districtOrder()))];
+  sel.innerHTML=ds.map(d=>`<option>${esc(d)}</option>`).join('')+'<option value="__custom">➕ 自訂區域…</option>';
+  sel.onchange=()=>{ document.getElementById('f-district-custom').style.display = sel.value==='__custom'?'block':'none'; };
+  ['f-name','f-cuisine','f-address','f-hours','f-phone','f-hl'].forEach(i=>document.getElementById(i).value='');
+  openModal('addModal');
+}
+let suggestTimer; let pickedLatLon=null;
+function suggestPlaces(q){
+  clearTimeout(suggestTimer);
+  const box=document.getElementById('suggest-box');
+  if(q.trim().length<2){ box.classList.remove('show'); return; }
+  suggestTimer=setTimeout(async ()=>{
+    try{
+      const url='https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=tw&accept-language=zh-TW&q='+encodeURIComponent(q+' 高雄');
+      const res=await fetch(url);
+      const arr=await res.json();
+      if(!arr.length){ box.innerHTML='<div class="suggest-item"><span class="sub">查無聯想結果 — OpenStreetMap 對小店覆蓋有限，可直接手動填寫，或按下方「查 Google 網友評價」搜尋。</span></div>'; box.classList.add('show'); return; }
+      box.innerHTML=arr.map(p=>`<div class="suggest-item" data-name="${esc(p.name||q)}" data-addr="${esc(p.display_name)}" data-lat="${p.lat}" data-lon="${p.lon}"><b>${esc(p.name||'(未命名)')}</b><br><span class="sub">${esc(p.display_name)}</span></div>`).join('');
+      box.classList.add('show');
+      box.querySelectorAll('.suggest-item').forEach(it=>it.onclick=()=>{
+        if(it.dataset.name){ document.getElementById('f-name').value=it.dataset.name; document.getElementById('f-address').value=it.dataset.addr||''; pickedLatLon={lat:it.dataset.lat,lon:it.dataset.lon}; }
+        box.classList.remove('show');
+      });
+    }catch(e){
+      box.innerHTML='<div class="suggest-item"><span class="sub">聯想服務暫時無法連線（可能是網路或速率限制），請稍候再試或手動填寫。</span></div>';
+      box.classList.add('show');
+    }
+  }, 700);
+}
+function openGoogleReview(){
+  const n=document.getElementById('f-name').value.trim();
+  if(!n){ toast('請先輸入店名'); return; }
+  window.open('https://www.google.com/maps/search/'+encodeURIComponent(n+' 高雄'),'_blank');
+}
+function saveNewRestaurant(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){ toast('店名必填！'); return; }
+  let district=document.getElementById('f-district').value;
+  if(district==='__custom'){ district=document.getElementById('f-district-custom').value.trim()||'其他地區 & 特色店'; }
+  const resSel=document.getElementById('f-res').value;
+  const resTextMap={no:'不需訂位',rec:'建議訂位',yes:'需訂位'};
+  const cuisine=document.getElementById('f-cuisine').value.trim();
+  const r={
+    id:'c'+Date.now(), name, district, cuisine,
+    price:document.getElementById('f-price').value,
+    resClass:resSel, resText:resTextMap[resSel],
+    address:document.getElementById('f-address').value.trim(),
+    hours:document.getElementById('f-hours').value.trim(),
+    phone:document.getElementById('f-phone').value.trim(),
+    grating:'', gcount:'',
+    hlLabel:'✦ 隱藏亮點', hlText:document.getElementById('f-hl').value.trim(),
+    mapUrl:'https://maps.google.com/?q='+encodeURIComponent(name+' 高雄'),
+    tags:(cuisine+' '+resTextMap[resSel]+' '+document.getElementById('f-price').value)
+  };
+  if(!r.hlText) r.hlLabel='';
+  custom.push(r); saveCustom(); closeModal('addModal'); render();
+  toast('已新增「'+name+'」🎉');
+}
+
+// ═══════════ 探店骰子 ═══════════
+let lastDiceId=null;
+function populateDice(){
+  const sel=document.getElementById('d-district');
+  sel.innerHTML='<option value="all">全部區域</option>'+districtOrder().map(d=>`<option>${esc(d)}</option>`).join('');
+}
+function dicePool(){
+  const dist=document.getElementById('d-district').value;
+  let cui=document.getElementById('d-cuisine-custom').value.trim() || document.getElementById('d-cuisine').value;
+  const onlyUn=document.getElementById('d-unvisited').checked;
+  const onlyOpen=document.getElementById('d-open').checked;
+  return allRestaurants().filter(r=>{
+    if(dist!=='all' && r.district!==dist) return false;
+    if(cui!=='all'){ const hay=(r.tags+' '+r.cuisine+' '+r.name).toLowerCase(); if(!hay.includes(cui.toLowerCase())) return false; }
+    if(onlyUn && ud(r.id).visited) return false;
+    if(onlyOpen && isOpenNow(r.hours)!==true) return false;
+    return true;
+  });
+}
+function rollDice(){
+  const box=document.getElementById('dice-result');
+  let pool=dicePool();
+  if(!pool.length){
+    box.className='dice-result show';
+    box.innerHTML='<div class="dice-meta">😅 這個條件骰不出任何店！<br>試著放寬條件：取消「只骰未去過」或「營業中」，或改選其他料理/區域。</div>';
+    return;
+  }
+  if(pool.length>1 && lastDiceId) pool=pool.filter(r=>r.id!==lastDiceId);
+  box.className='dice-result show rolling';
+  let ticks=0;
+  const spin=setInterval(()=>{
+    const t=pool[Math.floor(Math.random()*pool.length)];
+    box.innerHTML=`<div class="dice-name">🎰 ${esc(t.name)}</div>`;
+    if(++ticks>=8){
+      clearInterval(spin);
+      const pick=pool[Math.floor(Math.random()*pool.length)];
+      lastDiceId=pick.id;
+      showDiceResult(pick);
+    }
+  },90);
+}
+function showDiceResult(r){
+  const box=document.getElementById('dice-result');
+  box.className='dice-result show';
+  const dirDest=encodeURIComponent(r.name+' '+(r.address||'高雄'));
+  const u=ud(r.id);
+  box.innerHTML=`
+    <div class="dice-name">🎯 ${esc(r.name)}</div>
+    <div class="dice-meta">${esc(r.district)}｜${esc(r.cuisine)}｜${esc(r.price)}${r.resText?'｜'+esc(r.resText):''}${u.visited?'｜<b>你去過</b>':''}</div>
+    ${r.hours?`<div class="dice-meta">⏰ ${esc(r.hours)}</div>`:''}
+    ${r.hlText?`<div class="dice-hl">✦ ${esc(r.hlText)}</div>`:''}
+    <div class="modal-actions" style="margin-top:8px">
+      <a class="action-btn" style="text-decoration:none" href="https://www.google.com/maps/dir/?api=1&destination=${dirDest}&travelmode=driving" target="_blank">🗺 規劃路線出發！</a>
+      <button class="action-btn dice" onclick="rollDice()">🔁 重骰</button>
+    </div>`;
+}
+
+// ═══════════ 統計 ═══════════
+function openStats(){
+  const rs=allRestaurants();
+  const c=document.getElementById('stats-content');
+  const vc=rs.filter(r=>ud(r.id).visited).length;
+  const rated=rs.filter(r=>ud(r.id).stars).length;
+  const stars=rs.map(r=>ud(r.id).stars).filter(Boolean);
+  const avg=stars.length?(stars.reduce((a,b)=>a+b,0)/stars.length).toFixed(1):'–';
+  const best=rs.filter(r=>ud(r.id).stars===5).map(r=>r.name);
+  let html=`總店數 <b>${rs.length}</b>｜已拜訪 <b>${vc}</b>（${rs.length?Math.round(vc/rs.length*100):0}%）｜已評價 <b>${rated}</b>｜平均給星 <b>${avg}</b><br>`;
+  if(best.length) html+=`<div style="margin:6px 0">我的五星名店：${best.map(esc).join('、')}</div>`;
+  html+='<hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">各區進度：<br>';
+  districtOrder().forEach(d=>{
+    const items=rs.filter(r=>r.district===d);
+    const v=items.filter(r=>ud(r.id).visited).length;
+    const pct=items.length?Math.round(v/items.length*100):0;
+    html+=`${esc(d)} <span class="bar-bg"><span class="bar-fill" style="width:${pct}%"></span></span> ${v}/${items.length}<br>`;
+  });
+  c.innerHTML=html;
+  openModal('statsModal');
+}
+
+// ═══════════ 備份 ═══════════
+function exportData(){
+  const payload={version:2, exportedAt:new Date().toISOString(), user:userData, custom, removed};
+  const blob=new Blob([JSON.stringify(payload,null,1)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  const d=new Date(); 
+  a.download=`khfood-backup-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('備份檔已下載 ✅');
+}
+function importData(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const p=JSON.parse(reader.result);
+      if(!p.user && !p.custom) throw new Error('格式不符');
+      if(!confirm('匯入會覆蓋目前所有評價與自訂餐廳，確定嗎？')) return;
+      userData=p.user||{}; custom=p.custom||[]; removed=p.removed||[];
+      saveUser(); saveCustom(); saveRemoved(); render();
+      closeModal('backupModal'); toast('匯入成功 🎉');
+    }catch(e){ alert('匯入失敗：檔案不是本程式匯出的備份 JSON。'); }
+  };
+  reader.readAsText(file); input.value='';
+}
+function restoreDeleted(){
+  if(!removed.length){ toast('沒有被刪除的內建餐廳'); return; }
+  if(!confirm(`還原 ${removed.length} 間被刪除的內建餐廳？`)) return;
+  removed=[]; saveRemoved(); render(); toast('已全部還原 ♻️');
+}
+
+// ═══════════ Toast ═══════════
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// init
+populateDice();
+render();
+</script>
+</body>
+</html>
